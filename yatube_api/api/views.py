@@ -1,15 +1,16 @@
 from posts.models import Comment, Group, Post, Follow, User
-from rest_framework import viewsets
+from rest_framework import viewsets, filters, mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
-from .permissions import IsAuthorOrAdmin, IfUserNotFollowing
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from .permissions import IsAuthorOrAdmin
 from .serializers import PostSerializer, CommentSerializer, GroupSerializer, FollowSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthorOrAdmin]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrAdmin]
     pagination_class = LimitOffsetPagination
 
     def perform_create(self, serializer):
@@ -25,7 +26,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthorOrAdmin]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrAdmin]
 
     def perform_create(self, serializer):
         serializer.save(
@@ -43,12 +44,16 @@ class CommentViewSet(viewsets.ModelViewSet):
 class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
-    search_fields = ('following', )
-    permission_classes = [IfUserNotFollowing]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ('following__username',)
 
     def get_queryset(self):
-        return get_object_or_404(
+        user = get_object_or_404(
             User,
-            pk=self.kwargs.get('following')
-        ).following.all()
+            username=self.request.user
+        )
+        return Follow.objects.filter(user=user)
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
