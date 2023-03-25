@@ -1,15 +1,17 @@
 import base64
+import uuid
 
 from django.core.files.base import ContentFile
+from posts.models import Comment, Follow, Group, Post, User
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueTogetherValidator
 
-from posts.models import Comment, Post, Group, Follow, User
-
 
 class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
+    """Кодировка изображений в формате base64."""
+    def to_internal_value(self, data) -> uuid.UUID:
+        """Ввод является допустимой строкой UUID"""
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
             ext = format.split('/')[-1]
@@ -19,6 +21,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class PostSerializer(serializers.ModelSerializer):
+    """Сериализатор постов."""
     author = SlugRelatedField(
         slug_field='username',
         read_only=True,
@@ -29,17 +32,19 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = '__all__'
-        read_only_fields = ('author', 'pub_date',)
+        read_only_fields: tuple[str] = ('author', 'pub_date',)
 
 
 class GroupSerializer(serializers.ModelSerializer):
+    """Сериализатор групп."""
     class Meta:
         model = Group
         fields = '__all__'
-        read_only_fields = ('slug',)
+        read_only_fields: tuple[str] = ('slug',)
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор комментариев."""
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',
@@ -49,10 +54,11 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = Comment
-        read_only_fields = ('post',)
+        read_only_fields: tuple[str] = ('post',)
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    """Сериализатор подписок."""
     user = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',
@@ -62,7 +68,6 @@ class FollowSerializer(serializers.ModelSerializer):
         slug_field='username',
         queryset=User.objects.all()
     )
-
     validators = [
         UniqueTogetherValidator(
             queryset=Follow.objects.all(),
@@ -70,6 +75,7 @@ class FollowSerializer(serializers.ModelSerializer):
     ]
 
     def validate(self, data):
+        """Отсутствие возможности подписаться на себя."""
         if self.context.get('request').user != data.get('following'):
             return data
         raise serializers.ValidationError(
