@@ -1,11 +1,10 @@
-from rest_framework.viewsets import GenericViewSet
-
-from posts.models import Comment, Follow, Group, Post, User
-from rest_framework import filters, viewsets, mixins
+from posts.models import Comment, Follow, Group, Post
+from rest_framework import filters, mixins, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
+from rest_framework.viewsets import GenericViewSet
 
 from .permissions import IsAuthorOrAdmin
 from .serializers import (CommentSerializer, FollowSerializer, GroupSerializer,
@@ -55,7 +54,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         ).comments.all()
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(mixins.CreateModelMixin,
+                    mixins.ListModelMixin,
+                    GenericViewSet):
     """Возвращает все подписки пользователя."""
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
