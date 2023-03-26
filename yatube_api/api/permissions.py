@@ -9,6 +9,5 @@ class IsAuthorOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj) -> bool:
         """Установка разрешения на уровне объекта изменять
         контент только с правами автора или администратора"""
-        if request.method in permissions.SAFE_METHODS:
+        if request.method in permissions.SAFE_METHODS or (request.user == obj.author or request.user.is_staff):
             return True
-        return request.user == obj.author or request.user.is_staff

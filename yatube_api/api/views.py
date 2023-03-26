@@ -1,5 +1,7 @@
+from rest_framework.viewsets import GenericViewSet
+
 from posts.models import Comment, Follow, Group, Post, User
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticated,
@@ -41,7 +43,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         для сохранения автора и id поста при создании комментария."""
         serializer.save(
             author=self.request.user,
-            post=get_object_or_404(Post, id=self.kwargs.get('post_id'))
+            post=get_object_or_404(Post, pk=self.kwargs.get('post_id'))
         )
 
     def get_queryset(self):
@@ -64,11 +66,7 @@ class FollowViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Переопределение метода get_queryset
         для запроса фолловеров по username."""
-        user = get_object_or_404(
-            User,
-            username=self.request.user
-        )
-        return Follow.objects.filter(user=user)
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
         """Переопределение метода perform_create
